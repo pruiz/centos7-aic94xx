@@ -59,7 +59,7 @@ Vagrant.configure(2) do |config|
     yum -y groupinstall 'Development Tools'
     yum -y install bc xmlto asciidoc hmaccalc python-devel newt-devel 'perl(ExtUtils::Embed)' pesign elfutils-devel zlib-devel binutils-devel audit-libs-devel numactl-devel pciutils-devel ncurses-devel
     yum -y --enablerepo=extras install epel-release
-    yum -y install dkms
+    yum -y install dkms kabi-yum-plugins ksc
   SHELL
 
 end
