@@ -1,0 +1,125 @@
+##
+## Generic rules for building modules for driver disks
+##
+
+.PHONY:	kmods disk diskimg diskiso distclean clean cleankmods cleandiskfs \
+	cleandiskimg cleandiskiso cleanimage
+
+kmods:
+	@if [ -d "$(PWD)/.git" ]; then \
+		export GIT_REVNUM=$$(cd "$(PWD)"; git rev-list HEAD|wc -l) ; \
+	else \
+		export GIT_REVNUM=0 ; \
+	fi ; \
+	for KVER in $(KVERSIONS) ; \
+	do \
+		export RPMBUILDROOT=$$(mktemp -d /var/tmp/kmod-rpms.XXXXX) ; \
+		echo -e "\nBuilding modules for kernel $${KVER}..." ; \
+		mkdir -p $$RPMBUILDROOT/{SOURCES,BUILDROOT} ; \
+		if [ ! -d rpms/$(KARCH) ] ; \
+		then \
+			mkdir -p rpms/$(KARCH) ; \
+		fi ; \
+		if [ "x$(KARCH)" == "xi686" ] ; \
+		then \
+			ln -sf $(KARCH) rpms/i386 ; \
+		fi ; \
+		for SUBDIR in $(SUBDIRS) ; \
+		do \
+			export MODVER=$$(cat $$SUBDIR/VERSION) ; \
+			echo -e "\nBuilding $$SUBDIR TGZ...\n" ; \
+			tar -cvzf $$RPMBUILDROOT/SOURCES/$$SUBDIR-$$MODVER.tar.gz $$SUBDIR/ ; \
+			echo -e "\nBuilding $$SUBDIR RPM...\n" ; \
+			rpmbuild --define "_topdir $$RPMBUILDROOT" \
+			         --define "_rpmdir $(PWD)/rpms" \
+			         --define "version $$MODVER" \
+				 --define "release $$GIT_REVNUM" \
+			         -tb --target ${KARCH} \
+			         $$RPMBUILDROOT/SOURCES/$$SUBDIR-$$MODVER.tar.gz ; \
+		done ; \
+	done
+
+disk: kmods
+	@if [ ! -d disk ] ; \
+	then \
+		mkdir disk ; \
+	fi
+	@cp ddinst/rhdd3 disk
+	@if [ ! -x "$(CREATEREPO)" ] ; \
+	then \
+		echo " ----------------------------------------------"; \
+		echo "| ERROR: Please install the createrepo package |"; \
+		echo " ----------------------------------------------"; \
+		exit 1 ; \
+	fi
+	@createrepo --pretty rpms/$(KARCH)
+	@rm -rf disk/rpms
+	@cp -ax rpms disk/rpms
+
+images:
+	@mkdir images
+
+diskimg: disk images cleandiskimg
+	@dd if=/dev/zero of=images/dd.img bs=1440k count=1 >/dev/null 2>&1
+	@if [ ! -d images/tmp ] ; \
+	then \
+		mkdir images/tmp ; \
+	fi
+	@echo -e "\nBuilding disk image (superuser authority required)..."
+	@$(SU) root ddinst/makedisk $(FSTYPE) images/dd.img images/tmp
+	@rmdir images/tmp
+	@gzip -9 images/dd.img >/dev/null 2>&1
+	@if [ -f images/dd.img.gz ] ; \
+	then \
+		echo -e "\n...disk image written as images/dd.img.gz." ; \
+	else \
+		echo -e "\n...disk image creation failed!" ; \
+	fi
+
+diskiso: disk images cleandiskiso
+	@echo -e "\nBuilding ISO image..."
+	@mkisofs -R -o images/dd.iso disk >/dev/null 2>&1
+	@gzip -9 images/dd.iso >/dev/null 2>&1
+	@if [ -f images/dd.iso.gz ] ; \
+	then \
+		echo -e "\n...ISO image written as images/dd.iso.gz." ; \
+	else \
+		echo -e "\n...ISO image creation failed!" ; \
+	fi
+
+sources:
+	@while read file ; \
+	do \
+		dir=`dirname $$file` ; \
+		if [ ! -d disk/src/$$dir ] ; \
+		then \
+			mkdir -p disk/src/$$dir ; \
+		fi ; \
+		cp $$file disk/src/$$file ; \
+	done < dist
+
+distclean: clean cleanimage
+
+clean: cleandiskfs cleankmods cleanrpms cleanimage
+
+cleankmods:
+	@rm -rf .build
+
+cleandiskfs:
+	@rm -rf disk
+
+cleandiskimg:
+	@rm -f images/dd.img.gz
+
+cleandiskiso:
+	@rm -f images/dd.iso.gz
+
+cleanimage: cleandiskimg cleandiskiso
+	@if [ -d images ] ; \
+	then \
+		rm -rf images ; \
+	fi
+
+cleanrpms:
+	@rm -rf rpms
+	@rm -rf tmp

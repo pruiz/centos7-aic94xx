@@ -1,0 +1,8 @@
+AIC94xx Driver Package for CentOS/RedHat Enterprise 7.x
+=======================================================
+
+Based on kernel version 3.10.0-514.
+
+Using some buildstuff from redhat's ddinst kit v2.5,
+available at: http://people.redhat.com/jcm/el6/dup/examples/ddiskit/ddiskit-v2.5.tar.bz2
+
