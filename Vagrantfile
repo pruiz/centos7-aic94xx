@@ -12,8 +12,8 @@ Vagrant.configure(2) do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "bento/centos-7.3"
-  config.vm.box_version = "2.3.4"
+  config.vm.box = "bento/centos-7.5"
+  config.vm.box_version = "201808.24.0"
   config.vm.hostname = "centos7-aic94xx.sandbox"
 
   # Create a forwarded port mapping which allows access to a specific port
