@@ -12,8 +12,8 @@ Vagrant.configure(2) do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "bento/centos-7.5"
-  config.vm.box_version = "201808.24.0"
+  config.vm.box = "bento/centos-7.8"
+  config.vm.box_version = "202007.17.0"
   config.vm.hostname = "centos7-aic94xx.sandbox"
 
   # Create a forwarded port mapping which allows access to a specific port
@@ -28,6 +28,7 @@ Vagrant.configure(2) do |config|
 
   # Ensure we uselinked-clones under parallels.
   config.vm.provider "parallels" do |prov|
+    prov.update_guest_tools = true
     if prov.respond_to?("linked_clone") then prov.linked_clone else prov.use_linked_clone end
   end
 
